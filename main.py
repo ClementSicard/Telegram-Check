@@ -1,9 +1,7 @@
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
-from telethon.tl.functions.contacts import GetContactsRequest
 import configparser
 import getpass
-import asyncio
 import datetime
 from telethon.tl.functions.users import GetFullUserRequest
 import time
