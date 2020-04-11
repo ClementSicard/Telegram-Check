@@ -12,28 +12,28 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 # Import API credentials
-perso_api_id = config['Telegram']['api_id']
-perso_api_hash = str(config['Telegram']['api_hash'])
-perso_phone = config['Telegram']['phone']
-perso_username = config['Telegram']['username']
+api_id = config['Telegram']['api_id']
+api_hash = str(config['Telegram']['api_hash'])
+phone = config['Telegram']['phone']
+username = config['Telegram']['username']
 
-persoClient = TelegramClient(perso_username, perso_api_id, perso_api_hash)
+client = TelegramClient(username, api_id, api_hash)
 
 
 async def main(phone):
-    await persoClient.start()
+    await client.start()
     print("Client Created")
     # Ensure you're authorized
-    if await persoClient.is_user_authorized() == False:
-        await persoClient.send_code_request(phone)
+    if await client.is_user_authorized() == False:
+        await client.send_code_request(phone)
         try:
-            await persoClient.sign_in(phone, input('Enter the code: '))
+            await client.sign_in(phone, input('Enter the code: '))
         except SessionPasswordNeededError:
-            await persoClient.sign_in(password=getpass.getpass(prompt='Password: '))
+            await client.sign_in(password=getpass.getpass(prompt='Password: '))
 
-    me = await persoClient.get_me()
+    me = await client.get_me()
     contacts = []
-    contacts_req = await persoClient(GetContactsRequest(hash=0))
+    contacts_req = await client(GetContactsRequest(hash=0))
     contacts.append(contacts_req.saved_count)
     contacts.extend(contacts_req.users)
 
@@ -41,7 +41,7 @@ async def main(phone):
     while True:
         username = input("Enter username/phone number : ")
         try:
-            user = await persoClient(GetFullUserRequest(username))
+            user = await client(GetFullUserRequest(username))
             break
         except ValueError:
             print("No user with name", username, "was found\n")
@@ -67,5 +67,5 @@ async def main(phone):
                 print(name, "was last seen", minutes_since, "minutes ago")
 
 
-with persoClient:
-    persoClient.loop.run_until_complete(main(perso_phone))
+with client:
+    client.loop.run_until_complete(main(phone))
