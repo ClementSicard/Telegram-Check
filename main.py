@@ -6,6 +6,7 @@ import getpass
 import asyncio
 import datetime
 from telethon.tl.functions.users import GetFullUserRequest
+import time
 
 # Read config.ini
 config = configparser.ConfigParser()
@@ -20,6 +21,30 @@ username = config['Telegram']['username']
 client = TelegramClient(username, api_id, api_hash)
 
 
+def message_time_delta(name, time_delta):
+    message = ""
+    if time_delta <= datetime.timedelta(seconds=60):
+        message += name + " is online"
+    else:
+        minutes_since = int(time_delta.total_seconds() / 60)
+        if minutes_since > 60:
+            hours_since, minutes_since = int(
+                minutes_since / 60), minutes_since % 60 + 1
+            if hours_since == 1:
+                message += name + " was last seen 1h" + \
+                    str(minutes_since) + " ago"
+            else:
+                message += name + " was last seen " + \
+                    str(hours_since), "hours ago"
+        else:
+            if minutes_since == 1:
+                message += name + " was last seen 1 minute ago"
+            else:
+                message += name + " was last seen " + \
+                    str(minutes_since) + " minutes ago"
+    return message
+
+
 async def main(phone):
     await client.start()
     print("Client Created")
@@ -32,40 +57,22 @@ async def main(phone):
             await client.sign_in(password=getpass.getpass(prompt='Password: '))
 
     me = await client.get_me()
-    contacts = []
-    contacts_req = await client(GetContactsRequest(hash=0))
-    contacts.append(contacts_req.saved_count)
-    contacts.extend(contacts_req.users)
 
-    print("You have", contacts[0], "contacts in Telegram\n")
-    while True:
-        username = input("Enter username/phone number : ")
-        try:
-            user = await client(GetFullUserRequest(username))
-            break
-        except ValueError:
-            print("No user with name", username, "was found\n")
+    username = config['Telegram']['looked_for_user']
 
-    last_seen = user.user.status.was_online
-    time_delta = datetime.datetime.now(tz=datetime.timezone.utc) - last_seen
+    try:
+        user = await client(GetFullUserRequest(username))
+    except ValueError:
+        print("No user with id", username, "was found\n")
+        quit()
+
     name = user.user.first_name + " " + user.user.last_name
-    if time_delta <= datetime.timedelta(seconds=60):
-        print(name, "is online")
-    else:
-        minutes_since = int(time_delta.total_seconds() / 60)
-        if minutes_since > 60:
-            hours_since, minutes_since = int(
-                minutes_since / 60), minutes_since % 60 + 1
-            if hours_since == 1:
-                print(name + " was last seen 1h" + str(minutes_since) + " ago")
-            else:
-                print(name, "was last seen", hours_since, "hours ago")
-        else:
-            if minutes_since == 1:
-                print(name, "was last seen 1 minute ago")
-            else:
-                print(name, "was last seen", minutes_since, "minutes ago")
-
+    while True:
+        last_seen = user.user.status.was_online
+        time_delta = datetime.datetime.now(
+            tz=datetime.timezone.utc) - last_seen
+        print(message_time_delta(name, time_delta))
+        time.sleep(60)
 
 with client:
     client.loop.run_until_complete(main(phone))
